@@ -1,0 +1,31 @@
+SHEET_ID: google doc ID goes here.
+AREA_OF_INTEREST:
+- _id: city:or_milwaukie
+  _score: 36035.258
+  area_type: city
+  centroid:
+    lat: 45.4448485
+    lon: -122.6232989
+  city: Milwaukie
+  country: USA
+  geo_id: 6d1bea9c-f367-5f98-ad22-bc85bfc3d22f
+  state_code: OR
+- _id: city:or_portland
+  _score: 18.105978
+  area_type: city
+  centroid:
+    lat: 45.5369506
+    lon: -122.649971
+  city: Portland
+  country: USA
+  geo_id: b41cbc0e-3d4e-5c89-8f4a-475a92007ec5
+  state_code: OR
+QUERY_PARAMETERS:
+  beds_min: '1'
+  is_pending: 'false'
+  limit: '200'
+  offset: '0'
+  price_max: '450001'
+  prop_type: single_family
+  radius: '10'
+  sort: newest
