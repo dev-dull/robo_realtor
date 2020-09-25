@@ -27,12 +27,33 @@ AREA_OF_INTEREST:
   country: USA
   geo_id: b41cbc0e-3d4e-5c89-8f4a-475a92007ec5
   state_code: OR
+
+# Query parameters are values that will be sent to the API.
+# I've found that they want EVERYTHING (ints, bools, etc) sent over as a string.
+# If in doubt, put the value in single-quotes (e.g. 'the_value')
+# The accuracy of 'features' depends on the realtor who created the listing, and I wouldn't trust it.
 QUERY_PARAMETERS:
   beds_min: '1'
-  is_pending: 'false'
-  limit: '200'
-  offset: '0'
-  price_max: '450001'
-  prop_type: single_family
-  radius: '10'
-  sort: newest
+  is_pending: 'false'             # optional, pending only
+  limit: '200'     # !! DO NOT CHANGE !!
+  offset: '0'      # !! DO NOT CHANGE !!
+  price_max: '450001'             # optional, filter by setting max price
+  prop_type: single_family        # optional, one of following (separate by comma for multiple values): single_family,multi_family,condo,mobile,land,farm,other
+  radius: '10'                    # Radius in miles from AREA_OF_INTEREST, max 20.
+  sort: newest     # !! DO NOT CHANGE !!
+  # baths_min: '0'                # optional, min baths of properties
+  # age_min: '0'                  # optional, min age of properties
+  # age_max: '0'                  # optional, max age of properties
+  # sqft_min: '0'                 # optional, min size of properties
+  # sqft_max: '0'                 # optional, max size of the properties
+  # is_matterports: 'false'       # optional, 3D tours only
+  # is_foreclosure: 'false'       #optional, foreclosures only
+  # price_min: '0'                # optional, filter by setting min price
+  # has_open_house: 'false'       # open houses only
+  # lot_sqft_min: '0'             # optional, min lot acreage size
+  # lot_sqft_max: '0'             # optional, max lot acreage size
+  # is_new_plan: 'false'          # optional, homes not yet built
+  # prop_sub_type: condo          # optional, one of following (separate by comma for multiple values): condo,cond_op,townhouse,co_op
+  # is_contingent: 'false'        # optional, contingent only
+  # is_new_construction: 'false'  # optional, new construction only
+  # features: 'garage_1_or_more'  # optional, one of following (separate by comma for multiple values): garage_2_or_more,view,waterfront,golf_course_view,swimming_pool,cul_de_sac,hardwood_floors,basement,fireplace,energy_efficient,disability_features,dining_room,washer_dryer,family_room,den_or_office,game_room,central_air,central_heat,forced_air,single_story,two_or_more_stories,corner_lot,water_view,golf_course_lot_or_frontage,hill_or_mountain_view,ocean_view,city_view,lake_view,river_view,community_security_features,community_swimming_pool,community_boat_facilities,recreation_facilities,community_clubhouse,community_horse_facilities,community_tennis_court,community_park,community_golf,senior_community,community_spa_or_hot_tub,rv_or_boat_parking,horse_facilities,tennis_court,spa_or_hot_tub,garage_1_or_more,garage_3_or_more,carport
