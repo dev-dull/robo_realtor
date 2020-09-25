@@ -1,4 +1,11 @@
-SHEET_ID: google doc ID goes here.
+REALTOR_RAPIDAPI_KEY: foobar
+
+# ID is found in the URL of the document you want to update.
+DOCUMENT_ID: fizz buzz
+
+# Name must match the sheet name
+SHEET_NAME: Sheet1
+
 AREA_OF_INTEREST:
 - _id: city:or_milwaukie
   _score: 36035.258
