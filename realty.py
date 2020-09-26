@@ -1,143 +1,123 @@
 import json
+import yaml
 import requests
 from os import path
+from CONSTS import C
 from gsheet import open_sheet
 from datetime import datetime
+from argparse import ArgumentParser
 
-class C(object):
-    HEADERS = {
-        'x-rapidapi-host': "realtor.p.rapidapi.com",
-        'x-rapidapi-key': ""
-        }
+def get_city(city):
+    url = '/'.join([C.BASE_URL, C.ENDPOINT_GET_CITY])
 
-    AOI = [
-        {
-          "area_type": "city",
-          "_id": "city:or_milwaukie",
-          "_score": 36035.258,
-          "city": "Milwaukie",
-          "state_code": "OR",
-          "country": "USA",
-          "centroid": {
-            "lon": -122.6232989,
-            "lat": 45.4448485
-          },
-          "geo_id": "6d1bea9c-f367-5f98-ad22-bc85bfc3d22f"
-        },
-        {
-          "area_type": "city",
-          "_id": "city:or_portland",
-          "_score": 18.105978,
-          "city": "Portland",
-          "state_code": "OR",
-          "country": "USA",
-          "centroid": {
-            "lon": -122.649971,
-            "lat": 45.5369506
-          },
-          "geo_id": "b41cbc0e-3d4e-5c89-8f4a-475a92007ec5"
-        }
-    ]
-
-
-def get_city(city='portland'):
-    url = 'https://realtor.p.rapidapi.com/locations/auto-complete'
-
-    querystring = {'input': city}
-
-    headers = {
-        'x-rapidapi-host': 'realtor.p.rapidapi.com',
-        'x-rapidapi-key': ''
-        }
-
+    querystring = {C.API_KEYWORD_INPUT: city}
     response = requests.get(url, headers=C.HEADERS, params=querystring)
 
-    return response.json()
+    return yaml.dump([response.json()[C.API_RESPONSE_KEYWORD_AUTOCOMPLETE][0]], default_flow_style=False)
 
 
 def get_sale_listings(city_details, property_id_list, limit=200, offset=0):
-    url = 'https://realtor.p.rapidapi.com/properties/v2/list-for-sale'
-    parameters = {
-                   "beds_min":"1",
-                   "sort":"newest",
-                   "radius":"10",
-                   "price_max":"450001",
-                   "is_pending":"false",
-                   #"features":"garage_1_or_more",
-                   "limit":str(limit),
-                   "offset":str(offset),
-                   "prop_type": "single_family"
-                 }
+    url = '/'.join([C.BASE_URL, C.ENDPOINT_GET_SALE_LISTINGS])
+    parameters = C.QUERY_PARAMETERS
+
+    # we depend on these things being true, so hard-code them.
+    parameters['sort'] = 'newest'
+    parameters['limit'] = str(limit)
+    parameters['offset'] = str(offset)
+
     city_details.update(parameters)
 
-    querystring = city_details
-
-    response = requests.get(url, headers=C.HEADERS, params=querystring)
-    properties = response.json()['properties']
+    response = requests.get(url, headers=C.HEADERS, params=city_details)
+    properties = response.json()[C.API_RESPONSE_KEYWORD_PROPERTIES]
 
     new_properties = []
-    for property in properties:
-        if property['property_id'] in property_id_list:
+    for _property in properties:
+        if _property[C.API_RESPONSE_KEYWORD_PROPERTY_ID] in property_id_list:
             return new_properties
         else:
-            new_properties.append(property)
+            new_properties.append(_property)
 
     if properties:
         return new_properties + get_sale_listings(city_details, property_id_list, offset=offset+limit)
 
     return []
 
+
 def find_new_listings():
     new_properties = []
     new_aoi_properties = []
-    for aoi in C.AOI:
+    for aoi in C.AREA_OF_INTEREST:
         properties = []
-        if path.exists('%s.json' % aoi['city']):
-            fin = open('%s.json' % aoi['city'], 'r')
+        if path.exists('%s.json' % aoi[C.API_KEYWORD_CITY]):
+            fin = open('%s.json' % aoi[C.API_KEYWORD_CITY], 'r')
             properties = json.load(fin)
             fin.close()
 
-        property_id_list = [p['property_id'] for p in properties]
+        property_id_list = [p[C.API_RESPONSE_KEYWORD_PROPERTY_ID] for p in properties]
         new_aoi_properties = get_sale_listings(aoi, property_id_list)
         properties += new_aoi_properties
         print(aoi['city'], len(new_aoi_properties))
         new_properties += new_aoi_properties
 
-        fout = open('%s.json' % aoi['city'], 'w')
+        fout = open('%s.json' % aoi[C.API_KEYWORD_CITY], 'w')
         fout.write(json.dumps(properties, indent=2))
         fout.truncate()
         fout.close()
     return new_properties
 
 
-def update_sheet(new_listings, sheet_id, range='robot_found'):
+def update_sheet(new_listings, sheet_id, range):
     sheet = open_sheet()
     row_num = _find_empty_row(sheet, sheet_id, range)
 
     rows = []
     property_ids = []
     for new_listing in new_listings:
-        if new_listing['property_id'] not in property_ids:
-            property_ids.append(new_listing['property_id'])
-            row = [datetime.now().strftime('%Y-%m-%d %H:%M'), 'placy mcplace face']
-            row.append(new_listing['property_id'])
-            row.append(new_listing['listing_id'])
-            row.append(new_listing['price'])
-            row.append(new_listing['address']['line'])
-            row.append(' '.join([str(ft) for ft in new_listing['building_size'].values()]) if 'building_size' in new_listing else '?')
-            row.append('%s,%s' % (new_listing['address']['lat'], new_listing['address']['lon']))
-            row.append(new_listing['address']['neighborhood_name'] if 'neighborhood_name' in new_listing['address'] else '?')
-            row.append(', '.join([nl['name'] for nl in new_listing['agents']]))
-            row.append(new_listing['office']['name'] if 'name' in new_listing['office'] else '?')
+        if new_listing[C.API_RESPONSE_KEYWORD_PROPERTY_ID] not in property_ids:
+            property_ids.append(new_listing[C.API_RESPONSE_KEYWORD_PROPERTY_ID])
+            row = [datetime.now().strftime(C.SHEET_TIMESTAMP_FORMAT), 'placy mcplace face']
+            row.append(new_listing.get(C.API_RESPONSE_KEYWORD_PROPERTY_ID, '?'))
+            row.append(new_listing.get(C.API_RESPONSE_KEYWORD_LISTING_ID, '?'))
+            row.append(new_listing.get(C.API_RESPONSE_KEYWORD_PRICE, '?'))
+            row.append(new_listing.get(C.API_RESPONSE_KEYWORD_ADDRESS, {}).get(C.API_RESPONSE_KEYWORD_LINE, '?'))
+            row.append(' '.join([str(ft) for ft in new_listing[C.API_RESPONSE_KEYWORD_BUILDING_SIZE].values()]) if C.API_RESPONSE_KEYWORD_BUILDING_SIZE in new_listing else '?')
+            row.append('%s,%s' % (new_listing[C.API_RESPONSE_KEYWORD_ADDRESS][C.API_RESPONSE_KEYWORD_LATITUDE], new_listing[C.API_RESPONSE_KEYWORD_ADDRESS][C.API_RESPONSE_KEYWORD_LONGITUDE]))
+            row.append(new_listing[C.API_RESPONSE_KEYWORD_ADDRESS].get(C.API_RESPONSE_KEYWORD_NEIGHBORHOOD_NAME, '?'))
+            row.append(', '.join([nl[C.API_RESPONSE_KEYWORD_NAME] for nl in new_listing.get(C.API_RESPONSE_KEYWORD_AGENTS, [])]))
+            row.append(new_listing.get(C.API_RESPONSE_KEYWORD_OFFICE, {}).get(C.API_RESPONSE_KEYWORD_NAME, '?'))
 
             rows.append(row)
 
+    if row_num == 1:
+        rows = [['Date found', 'Name this location', 'Property ID', 'Listing ID', 'Price', 'Address', 'Building size', 'lat,lon', 'Neighborhood name', 'Agents', 'Realtor office']] + rows
     body = {'values': rows}
-    result = sheet.values().update(spreadsheetId=sheet_id, valueInputOption='RAW', range='robot_found!A%s'%row_num, body=body).execute()
+    result = sheet.values().update(spreadsheetId=sheet_id, valueInputOption='RAW', range='%s!A%s' % (C.SHEET_NAME, row_num), body=body).execute()
+
 
 def _find_empty_row(sheet, sheet_id, range):
     result = sheet.values().get(spreadsheetId=sheet_id, range=range).execute()
     return len(result.get('values', [])) + 1
 
-listings = find_new_listings()
-update_sheet(listings, '')
+
+def main():
+    parser = ArgumentParser(description='Find new real estate listings for the locations defined in config.yaml')
+    parser.add_argument('-c', '--get-city-details', dest='city', default=None,
+                        help='Prints out the AREA_OF_INTEREST text needed in config.yaml')
+    parser.add_argument('-i', '--init', dest='make_cache', action='store_true', default=False,
+                        help='Builds an initial city cache of all listings that are available now.')
+    args = parser.parse_args()
+
+    if args.make_cache and args.city:
+        print('Sorry, please use --get-city-details, update config.yaml, and then use --init')
+    elif args.make_cache:
+        find_new_listings()
+    elif args.city:
+        print('Add the following to the AREA_OF_INTEREST section of config.yaml:')
+        print(get_city(args.city))
+    else:
+        listings = find_new_listings()
+        update_sheet(listings, C.DOCUMENT_ID, C.SHEET_NAME)
+
+
+if __name__ == '__main__':
+    main()
