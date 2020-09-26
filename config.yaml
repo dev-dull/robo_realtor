@@ -35,12 +35,9 @@ AREA_OF_INTEREST:
 QUERY_PARAMETERS:
   beds_min: '1'
   is_pending: 'false'             # optional, pending only
-  limit: '200'     # !! DO NOT CHANGE !!
-  offset: '0'      # !! DO NOT CHANGE !!
   price_max: '450001'             # optional, filter by setting max price
   prop_type: single_family        # optional, one of following (separate by comma for multiple values): single_family,multi_family,condo,mobile,land,farm,other
   radius: '10'                    # Radius in miles from AREA_OF_INTEREST, max 20.
-  sort: newest     # !! DO NOT CHANGE !!
   # baths_min: '0'                # optional, min baths of properties
   # age_min: '0'                  # optional, min age of properties
   # age_max: '0'                  # optional, max age of properties
